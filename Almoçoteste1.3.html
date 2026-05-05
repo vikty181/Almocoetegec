@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Almoço Escolar</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+margin:0;
+}
+
+h1{
+margin-top:20px;
+color:#38bdf8;
+}
+
+.controls{
+margin:20px;
+display:none;
+}
+
+input, button{
+padding:10px;
+border-radius:6px;
+border:none;
+margin:5px;
+}
+
+button{
+cursor:pointer;
+background:#38bdf8;
+font-weight:bold;
+}
+
+.container{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+padding:20px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:12px;
+width:280px;
+box-shadow:0 0 15px rgba(0,0,0,0.5);
+}
+
+.horario{
+font-size:22px;
+color:#22c55e;
+margin-bottom:10px;
+}
+
+.curso{
+margin-top:10px;
+padding:10px;
+border-radius:8px;
+}
+
+.dg{ background:#1d4ed8; }
+.redes{ background:#0ea5e9; }
+.adm{ background:#9333ea; }
+
+.info{
+margin-top:10px;
+color:#94a3b8;
+}
+
+.login{
+margin:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🍽️ Escala de Almoço</h1>
+
+<!-- LOGIN -->
+<div class="login" id="loginBox">
+<input type="password" id="senha" placeholder="Senha de administrador">
+<button onclick="login()">Entrar</button>
+<p id="erro"></p>
+</div>
+
+<!-- CONTROLES (ADMIN) -->
+<div class="controls" id="controles">
+
+<label>Data inicial da escala:</label><br>
+
+<input type="date" id="dataInicio">
+<button onclick="gerar()">Gerar Semana</button><br>
+
+<button onclick="mudarSemana(-1)">⬅ Semana</button>
+<button onclick="mudarSemana(1)">Semana ➡</button>
+
+</div>
+
+<h2 id="semanaTexto"></h2>
+<p id="dataAtual"></p>
+
+<div class="container" id="resultado"></div>
+
+<script>
+
+let semana = 0
+let isAdmin = false
+
+const SENHA = "1234"
+
+const horarios = ["11:40","11:50","12:00"]
+
+function login(){
+
+let senha = document.getElementById("senha").value
+
+if(senha === SENHA){
+isAdmin = true
+document.getElementById("controles").style.display = "block"
+document.getElementById("loginBox").style.display = "none"
+}else{
+document.getElementById("erro").textContent = "Senha incorreta"
+}
+
+}
+
+// salvar
+function salvar(data){
+if(!isAdmin) return
+localStorage.setItem("dataInicio", data)
+localStorage.setItem("semana", semana)
+}
+
+// carregar
+function carregar(){
+let data = localStorage.getItem("dataInicio")
+let semanaSalva = localStorage.getItem("semana")
+
+if(data){
+document.getElementById("dataInicio").value = data
+}
+
+if(semanaSalva){
+semana = parseInt(semanaSalva)
+}
+}
+
+function mudarSemana(valor){
+if(!isAdmin) return
+semana += valor
+if(semana < 0) semana = 0
+gerar()
+}
+
+function formatarData(data){
+return data.toLocaleDateString("pt-BR")
+}
+
+function gerar(){
+
+let dataInput
+
+if(isAdmin){
+dataInput = document.getElementById("dataInicio").value
+}else{
+dataInput = localStorage.getItem("dataInicio")
+}
+
+// se não tiver data salva ainda
+if(!dataInput){
+document.getElementById("resultado").innerHTML = "<p>Escala ainda não definida</p>"
+document.getElementById("semanaTexto").textContent = ""
+document.getElementById("dataAtual").textContent = ""
+return
+}
+
+// corrigir data
+let partes = dataInput.split("-")
+let inicio = new Date(partes[0], partes[1] - 1, partes[2])
+
+let dataAtual = new Date(inicio)
+dataAtual.setDate(inicio.getDate() + (semana * 7))
+
+salvar(dataInput)
+
+// rotação
+let ordemSeries = [1,2,3]
+let rotacao = semana % 3
+ordemSeries = ordemSeries.slice(rotacao).concat(ordemSeries.slice(0,rotacao))
+
+document.getElementById("semanaTexto").textContent = "Semana " + (semana + 1)
+document.getElementById("dataAtual").textContent = "Data da semana: " + formatarData(dataAtual)
+
+let resultado = document.getElementById("resultado")
+resultado.innerHTML = ""
+
+ordemSeries.forEach((serie, index)=>{
+
+let cursoPrincipal = serie == 3 ? "Redes" : "DG"
+let classeCurso = serie == 3 ? "redes" : "dg"
+
+let div = document.createElement("div")
+div.className = "card"
+
+div.innerHTML = `
+<div class="horario">${horarios[index]}</div>
+<h2>${serie}º Ano</h2>
+
+<div class="curso ${classeCurso}">
+<strong>${cursoPrincipal}</strong><br>
+${serie}º ${cursoPrincipal} A<br>
+${serie}º ${cursoPrincipal} B
+</div>
+
+<div class="curso adm">
+<strong>ADM</strong><br>
+${serie}º ADM A<br>
+${serie}º ADM B
+</div>
+
+<div class="info">
+Todas as turmas dessa série descem juntas
+</div>
+`
+
+resultado.appendChild(div)
+
+})
+
+}
+
+// iniciar
+carregar()
+gerar()
+
+</script>
+
+</body>
+</html>
